@@ -1,0 +1,5 @@
+results/
+result_*
+tmp_*
+_results
+__pycache__/
