@@ -6,10 +6,9 @@ from torchvision.transforms import Compose, ToTensor, Resize, Normalize
 
 
 class OneClassDataset(Dataset):
-    def __init__(self, dataset: Dataset, one_class_labels=[], zero_class_labels=[], transform=None, augmentation=False):
+    def __init__(self, dataset: Dataset, one_class_labels=[], zero_class_labels=[], augmentation=False):
         self.dataset = dataset
         self.one_class_labels = one_class_labels
-        self.transform = transform
         self.filtered_indexes = []
 
         valid_labels = one_class_labels + zero_class_labels
@@ -58,22 +57,3 @@ class OneClassDataset(Dataset):
 
     def __len__(self):
         return len(self.filtered_indexes)
-
-class ProjectedDataset(Dataset):
-
-    def __init__(self, train, distribution, projection):
-        super(ProjectedDataset, self).__init__()
-
-        projection.eval()
-        with torch.no_grad():
-            if train:
-                self.dataset = projection(distribution.sample(sample_shape=(5000,)))
-            else:
-                self.dataset = projection(distribution.sample(sample_shape=(1500,)))
-
-    def __getitem__(self, item):
-
-        return self.dataset[item], 0
-
-    def __len__(self):
-        return len(self.dataset)

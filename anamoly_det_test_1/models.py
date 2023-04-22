@@ -26,13 +26,13 @@ class Discriminator(nn.Module):
         self.d = nn.Sequential(
 
             nn.Linear(in_features=config['encoding_dim'], out_features=config['encoding_dim']),
-            LeakyReLU(0.2, inplace=True),
+            ReLU(inplace=True),
             nn.Linear(in_features=config['encoding_dim'], out_features=config['encoding_dim']),
             BatchNorm1d(num_features=config['encoding_dim']),
-            LeakyReLU(0.2, inplace=True),
+            ReLU(inplace=True),
             nn.Linear(in_features=config['encoding_dim'], out_features=config['encoding_dim']),
             BatchNorm1d(num_features=config['encoding_dim']),
-            LeakyReLU(0.2, inplace=True),
+            ReLU(inplace=True),
             nn.Linear(in_features=config['encoding_dim'], out_features=1)
         )
 
