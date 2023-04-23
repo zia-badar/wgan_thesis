@@ -140,12 +140,14 @@ def train_encoder(config):
         for i  in range(config['encoders_n']):
             e_xs.append(es[i](norm_transform(aug_transforms[i](x))))
 
-        center = torch.mean(torch.nn.functional.normalize(torch.stack(e_xs), dim=-1), dim=0)
+        # center = torch.mean(torch.nn.functional.normalize(torch.stack(e_xs), dim=-1), dim=0)
+        center = torch.mean(torch.stack(e_xs), dim=0)
         center = center.detach()
 
         for i in range(config['encoders_n']):
             f_x = fs[i](e_xs[i])
-            loss = -torch.mean(f_x + cosine_sim(center, e_xs[i]))
+            # loss = -torch.mean(f_x + cosine_sim(center, e_xs[i]))
+            loss = -torch.mean(f_x - torch.norm(center - e_xs[i], dim=1))
 
             optim_es[i].zero_grad()
             loss.backward()
@@ -220,7 +222,7 @@ if __name__ == '__main__':
     sum = 0
     for _class in range(10):
         # folder = list(filter(lambda f: f.endswith(str(_class)), listdir('/home/zia/Desktop/MasterThesis/anamoly_det_test_1/results/set_3/')))[0]
-        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 1000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 0, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 5 }
+        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 1000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 20, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 5 }
         config['lambda'] = 0
 
         config['class'] = _class
