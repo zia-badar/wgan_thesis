@@ -6,6 +6,7 @@ import shutil
 
 import numpy as np
 import torch.nn
+import torchvision.transforms.functional
 from numpy import arange
 from sklearn.metrics import roc_auc_score
 from torch import softmax, sigmoid, nn, det
@@ -19,6 +20,8 @@ from torchvision.datasets import MNIST, CIFAR10
 from torchvision.transforms import ToTensor, Resize
 from tqdm import tqdm
 
+from anamoly_det_test_1.DeterministicTransforms import ColorJitter, RandomResizedCrop, RandomHorizontalFlip
+
 sys.path.append('/home/users/z/zia_badar/masterthesisgitlab/')
 
 from anamoly_det_test_1.analysis import analyse
@@ -28,13 +31,29 @@ from anamoly_det_test_1.result import training_result
 
 
 def train_encoder(config):
+    aug_transform = transforms.Compose(list(filter(lambda item: item is not None, [
+        # transforms.RandomResizedCrop(32),
+        # transforms.RandomHorizontalFlip(p=0.5),
+        # transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+        # transforms.RandomGrayscale(p=0.2)
+
+        transforms.ToTensor(),
+        RandomResizedCrop(32),
+        RandomHorizontalFlip(p=0.5),
+        ColorJitter(0.4, 0.4, 0.4, 0.1) if torch.rand(1) < 0.8 else None,
+        transforms.Grayscale(num_output_channels=3) if torch.rand(1) < 0.2 else None,
+    ])))
+
     inlier = [config['class']]
     outlier = list(range(10))
     outlier.remove(config['class'])
     dataset = CIFAR10(root='../', train=True, download=True)
-    inlier_dataset = OneClassDataset(dataset, one_class_labels=inlier)
-    inlier_dataset_aug = OneClassDataset(dataset, one_class_labels=inlier, augmentation=True)
-    outlier_dataset = OneClassDataset(dataset, zero_class_labels=outlier)
+    # for setting determinister parameters of transform
+    _ = aug_transform(dataset[0][0])
+
+    inlier_dataset = OneClassDataset(dataset, aug_transform=aug_transform, one_class_labels=inlier)
+    inlier_dataset_aug = OneClassDataset(dataset, aug_transform=aug_transform, one_class_labels=inlier, augmentation=True)
+    outlier_dataset = OneClassDataset(dataset, aug_transform=aug_transform, zero_class_labels=outlier)
     train_inlier_dataset = Subset(inlier_dataset, range(0, (int)(.7 * len(inlier_dataset))))
     train_inlier_dataset_aug = Subset(inlier_dataset_aug, range(0, (int)(.7 * len(inlier_dataset))))
     train_dataset = train_inlier_dataset
@@ -72,6 +91,8 @@ def train_encoder(config):
     normal_dist = MultivariateNormal(loc=torch.zeros(config['encoding_dim']), covariance_matrix=torch.eye(config['encoding_dim']))
     result = training_result(config)
     result_file_name = f'{config["result_folder"]}result_{(int)(mktime(localtime()))}'
+    result.set_aug_transform(aug_transform)
+
 
     progress_bar = tqdm(range(1, config['encoder_iters']+1))
 
@@ -101,7 +122,7 @@ def train_encoder(config):
             encoder_dataloader_iter = iter(DataLoader(train_dataset_aug, batch_size=config['batch_size'], shuffle=True, num_workers=config['num_workers']))
             _, batch = _next(encoder_dataloader_iter)
 
-        x, _, _ = batch
+        x, _ = batch
         x = x.cuda()
 
         e_x = e(x)
@@ -173,7 +194,7 @@ if __name__ == '__main__':
     torch.backends.cudnn.deterministic = True
 
     sum = 0
-    for _class in range(0, 10):
+    for _class in [1]:
         # folder = list(filter(lambda f: f.endswith(str(_class)), listdir('/home/zia/Desktop/MasterThesis/anamoly_det_test_1/results/set_3/')))[0]
         config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 1000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 20, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/' }
         config['lambda'] = 0

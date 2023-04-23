@@ -17,6 +17,9 @@ class training_result:
             state_dict[k] = v.detach().cpu()
         return state_dict
 
+    def set_aug_transform(self, aug_transform):
+        self.aug_transform = aug_transform
+
     def update(self, model, mean, cov, condition_no):
 
         if condition_no > 0 and condition_no < self.min_condition_no:

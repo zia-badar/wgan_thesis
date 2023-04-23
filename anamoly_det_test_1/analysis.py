@@ -19,23 +19,25 @@ from anamoly_det_test_1.models import Encoder
 
 def analyse(config):
 
-    inlier = [config['class']]
-    outlier = list(range(10))
-    outlier.remove(config['class'])
-    dataset = CIFAR10(root='../', train=True, download=True)
-    inlier_dataset = OneClassDataset(dataset, one_class_labels=inlier)
-    outlier_dataset = OneClassDataset(dataset, zero_class_labels=outlier)
-    train_inlier_dataset = Subset(inlier_dataset, range(0, (int)(.7 * len(inlier_dataset))))
-    train_dataset = train_inlier_dataset
-    validation_inlier_dataset = Subset(inlier_dataset, range((int)(.7 * len(inlier_dataset)), len(inlier_dataset)))
-    validation_dataset = ConcatDataset([validation_inlier_dataset, outlier_dataset])
-
     prob_sum = None
     prob_count = 0
     for i, result_file in enumerate(listdir(config['result_folder'])):
 
         with open(config['result_folder'] + result_file, 'rb') as file:
             result = load(file)
+
+        aug_transform = result.aug_transform
+
+        inlier = [config['class']]
+        outlier = list(range(10))
+        outlier.remove(config['class'])
+        dataset = CIFAR10(root='../', train=True, download=True)
+        inlier_dataset = OneClassDataset(dataset, aug_transform=aug_transform, one_class_labels=inlier)
+        outlier_dataset = OneClassDataset(dataset, aug_transform=aug_transform, zero_class_labels=outlier)
+        train_inlier_dataset = Subset(inlier_dataset, range(0, (int)(.7 * len(inlier_dataset))))
+        train_dataset = train_inlier_dataset
+        validation_inlier_dataset = Subset(inlier_dataset, range((int)(.7 * len(inlier_dataset)), len(inlier_dataset)))
+        validation_dataset = ConcatDataset([validation_inlier_dataset, outlier_dataset])
 
         validation_dataloader = DataLoader(validation_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=config['num_workers'])
         model = Encoder(config)
