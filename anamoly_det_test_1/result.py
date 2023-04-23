@@ -17,15 +17,18 @@ class training_result:
             state_dict[k] = v.detach().cpu()
         return state_dict
 
-    def set_aug_transform(self, aug_transform):
-        self.aug_transform = aug_transform
+    def set_aug_transform(self, aug_transforms):
+        self.aug_transforms = aug_transforms
 
-    def update(self, model, mean, cov, condition_no):
+    def update(self, models, means, covs, condition_no):
 
-        if condition_no > 0 and condition_no < self.min_condition_no:
-            self.min_condition_no = condition_no
-            self.min_condition_no_model = training_result.model_state_dict(model)
-            self.min_condition_no_distribution = MultivariateNormal(mean, cov)
+        # if condition_no > 0 and condition_no < self.min_condition_no:
+        #     self.min_condition_no = condition_no
+        #     self.min_condition_no_model = training_result.model_state_dict(model)
+        #     self.min_condition_no_distribution = MultivariateNormal(mean, cov)
 
-        self.latest_model = training_result.model_state_dict(model)
-        self.latest_distribution = MultivariateNormal(mean, cov)
+        self.latest_models = []
+        self.latest_distributions = []
+        for i in range(self.config['encoders_n']):
+            self.latest_models.append(training_result.model_state_dict(models[i]))
+            self.latest_distributions.append(MultivariateNormal(means[i], covs[i]))
