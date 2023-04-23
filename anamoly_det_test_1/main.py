@@ -97,7 +97,8 @@ def train_encoder(config):
         optim_fs.append(RMSprop(fs[i].parameters(), lr=config['lr'], weight_decay=config['weight_decay']))
         optim_es.append(RMSprop(es[i].parameters(), lr=config['lr'], weight_decay=config['weight_decay']))
 
-    normal_dist = MultivariateNormal(loc=torch.zeros(config['encoding_dim']), covariance_matrix=torch.eye(config['encoding_dim']))
+    # normal_dist = MultivariateNormal(loc=torch.zeros(config['encoding_dim']), covariance_matrix=torch.eye(config['encoding_dim']))
+    normal_dist = torch.distributions.Uniform(-1, 1)
     result = training_result(config)
     result_file_name = f'{config["result_folder"]}result_{(int)(mktime(localtime()))}'
     result.set_aug_transform(aug_transforms)
@@ -116,7 +117,7 @@ def train_encoder(config):
 
             x, _ = batch
             x = x.cuda()
-            z = normal_dist.sample((x.shape[0], )).cuda()
+            z = normal_dist.sample((x.shape[0], config['encoding_dim'])).cuda()
 
             for i in range(config['encoders_n']):
                 loss = -torch.mean(fs[i](z) - fs[i](es[i](norm_transform(aug_transforms[i](x)))))
@@ -222,7 +223,7 @@ if __name__ == '__main__':
     sum = 0
     for _class in range(10):
         # folder = list(filter(lambda f: f.endswith(str(_class)), listdir('/home/zia/Desktop/MasterThesis/anamoly_det_test_1/results/set_3/')))[0]
-        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 1000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 20, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 5 }
+        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 1000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 0, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 5 }
         config['lambda'] = 0
 
         config['class'] = _class

@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from matplotlib import pyplot
 from sklearn.metrics import roc_auc_score
+from sklearn.svm import OneClassSVM
 from torch import det
 from torch.distributions import MultivariateNormal
 from torch.nn import CosineSimilarity
@@ -59,17 +60,27 @@ def analyse(config):
                     encodings.append(model(norm_transform(result.aug_transforms[encoder_n](x))))
                 encodings = torch.cat(encodings)
 
+                # gamma = (10 / (torch.var(encodings).item() * encodings.shape[1]))
+                # svm = OneClassSVM(kernel='rbf', gamma=gamma).fit(encodings.cpu().numpy())
+                svm = OneClassSVM(kernel='linear').fit(encodings.cpu().numpy())
+
+                val_x = []
                 for x, l in validation_dataloader:
                     x = x.cuda()
                     x = model(norm_transform(result.aug_transforms[encoder_n](x)))
+                    val_x.append(x)
                     log_prob = np.float128( distribution.log_prob(x).cpu().numpy())
                     prob.append(np.exp(log_prob))
                     cos_sim.append(torch.max(cosine_sim(encodings, x.unsqueeze(1)), dim=1).values)
                     labels.append(l)
 
+                val_x = torch.cat(val_x).cpu().numpy()
+
+
             cos_sim = torch.cat(cos_sim)
             prob = np.concatenate(prob)
             labels = torch.cat(labels)
+            print(f'linear ocsvm roc: {roc_auc_score(labels, svm.score_samples(val_x))}')
 
             cov = distribution.covariance_matrix
             d = cov.shape[0]
