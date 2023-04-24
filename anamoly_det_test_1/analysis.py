@@ -123,4 +123,4 @@ def analyse(config):
     roc2 = roc_auc_score(targets, cos_sim.cpu().numpy())
     print(f'class: {config["class"]}, p(x|u,c) roc_score: {roc}, cos_sim roc_score: {roc2}not_nan: {prob_count}')
 
-    return roc
+    return roc, roc2
