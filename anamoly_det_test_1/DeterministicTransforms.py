@@ -170,7 +170,7 @@ class RandomResizedCrop(torch.nn.Module):
     def __init__(
         self,
         size,
-        scale=(0.08, 1.0),
+        scale=(0.7, 1.0),
         ratio=(3.0 / 4.0, 4.0 / 3.0),
         interpolation=F.InterpolationMode.BILINEAR,
         antialias: Optional[bool] = None,
