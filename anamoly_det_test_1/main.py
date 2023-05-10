@@ -34,18 +34,17 @@ def train_encoder(config):
     aug_transforms = []
 
     for _ in range(config['encoders_n']):
-        # aug_transforms.append(transforms.Compose(list(filter(lambda item: item is not None, [
-        #     # transforms.RandomResizedCrop(32),
-        #     # transforms.RandomHorizontalFlip(p=0.5),
-        #     # transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-        #     # transforms.RandomGrayscale(p=0.2)
-        #
-        #     RandomResizedCrop(32),
-        #     RandomHorizontalFlip(p=0.5),
-        #     ColorJitter(0.4, 0.4, 0.4, 0.1) if torch.rand(1) < 0.8 else None,
-        #     transforms.Grayscale(num_output_channels=3) if torch.rand(1) < 0.2 else None,
-        # ]))))
-        aug_transforms.append(transforms.Compose([]))
+        aug_transforms.append(transforms.Compose(list(filter(lambda item: item is not None, [
+            # transforms.RandomResizedCrop(32),
+            # transforms.RandomHorizontalFlip(p=0.5),
+            # transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            # transforms.RandomGrayscale(p=0.2)
+
+            RandomResizedCrop(32),
+            RandomHorizontalFlip(p=0.5),
+            ColorJitter(0.4, 0.4, 0.4, 0.1) if torch.rand(1) < 0.8 else None,
+            transforms.Grayscale(num_output_channels=3) if torch.rand(1) < 0.2 else None,
+        ]))))
 
     inlier = [config['class']]
     outlier = list(range(10))
