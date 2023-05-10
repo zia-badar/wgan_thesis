@@ -14,21 +14,12 @@ from torchvision import transforms
 from torchvision.datasets import MNIST, CIFAR10
 from torchvision.transforms import ToTensor, Compose, Normalize
 
-from anamoly_det_test_1.datasets import OneClassDataset
+from anamoly_det_test_1.datasets import OneClassDataset, PerSampleAugmentDataset
 from anamoly_det_test_1.models import Encoder
 
 
 def analyse(config):
-    inlier = [config['class']]
-    outlier = list(range(10))
-    outlier.remove(config['class'])
-    dataset = CIFAR10(root='../', train=True, download=True)
-    inlier_dataset = OneClassDataset(dataset, one_class_labels=inlier)
-    outlier_dataset = OneClassDataset(dataset, zero_class_labels=outlier)
-    train_inlier_dataset = Subset(inlier_dataset, range(0, (int)(.7 * len(inlier_dataset))))
-    train_dataset = train_inlier_dataset
-    validation_inlier_dataset = Subset(inlier_dataset, range((int)(.7 * len(inlier_dataset)), len(inlier_dataset)))
-    validation_dataset = ConcatDataset([validation_inlier_dataset, outlier_dataset])
+
     norm_transform = Compose([Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
 
     cosine_sim = CosineSimilarity(dim=-1)
@@ -39,8 +30,19 @@ def analyse(config):
         with open(config['result_folder'] + result_file, 'rb') as file:
             result = load(file)
 
-
         for encoder_n in range(config['encoders_n']):
+            inlier = [config['class']]
+            outlier = list(range(10))
+            outlier.remove(config['class'])
+            dataset = CIFAR10(root='../', train=True, download=True)
+            inlier_dataset = OneClassDataset(dataset, one_class_labels=inlier)
+            outlier_dataset = OneClassDataset(dataset, zero_class_labels=outlier)
+            train_inlier_dataset = Subset(inlier_dataset, range(0, (int)(.7 * len(inlier_dataset))))
+            # train_dataset = train_inlier_dataset
+            train_dataset = PerSampleAugmentDataset(train_inlier_dataset, result.aug_transforms[encoder_n])
+            validation_inlier_dataset = Subset(inlier_dataset, range((int)(.7 * len(inlier_dataset)), len(inlier_dataset)))
+            validation_dataset = ConcatDataset([validation_inlier_dataset, outlier_dataset])
+
             train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=config['num_workers'])
             validation_dataloader = DataLoader(validation_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=config['num_workers'])
             model = Encoder(config)
@@ -57,7 +59,7 @@ def analyse(config):
                 encodings = []
                 for x, _ in train_dataloader:
                     x = x.cuda()
-                    encodings.append(model(norm_transform(result.aug_transforms[encoder_n](x))))
+                    encodings.append(model(norm_transform(x)))
                 encodings = torch.cat(encodings)
 
                 # gamma = (10 / (torch.var(encodings).item() * encodings.shape[1]))
@@ -67,7 +69,7 @@ def analyse(config):
                 val_x = []
                 for x, l in validation_dataloader:
                     x = x.cuda()
-                    x = model(norm_transform(result.aug_transforms[encoder_n](x)))
+                    x = model(norm_transform(x))
                     val_x.append(x)
                     log_prob = np.float128( distribution.log_prob(x).cpu().numpy())
                     prob.append(np.exp(log_prob))
@@ -106,6 +108,7 @@ def analyse(config):
             prob_count += 1
 
             # if (i+1) % 10 == 0:
+            print(f'cov: {cov}')
             print(f'{result_file}, p(x|u,c), roc_score: {roc_auc_score(labels.cpu().numpy(), (prob_sum / prob_count).cpu().numpy())}, roc: {roc_auc_score(labels.cpu().numpy(), prob.cpu().numpy())}')
             print(f'{result_file}, cos_sim, roc_score: {roc_auc_score(labels.cpu().numpy(), (cos_sum / prob_count).cpu().numpy())}, roc: {roc_auc_score(labels.cpu().numpy(), cos_sim.cpu().numpy())}')
 
