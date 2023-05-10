@@ -22,7 +22,7 @@ class Discriminator(nn.Module):
     def __init__(self, config):
         super(Discriminator, self).__init__()
 
-        scale = 1
+        scale = 2
         self.d = nn.Sequential(
 
             nn.Linear(in_features=config['encoding_dim'], out_features=config['encoding_dim']),

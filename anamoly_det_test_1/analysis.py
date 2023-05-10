@@ -22,13 +22,10 @@ def analyse(config):
     inlier = [config['class']]
     outlier = list(range(10))
     outlier.remove(config['class'])
-    dataset = CIFAR10(root='../', train=True, download=True)
-    inlier_dataset = OneClassDataset(dataset, one_class_labels=inlier)
-    outlier_dataset = OneClassDataset(dataset, zero_class_labels=outlier)
-    train_inlier_dataset = Subset(inlier_dataset, range(0, (int)(.7 * len(inlier_dataset))))
-    train_dataset = train_inlier_dataset
-    validation_inlier_dataset = Subset(inlier_dataset, range((int)(.7 * len(inlier_dataset)), len(inlier_dataset)))
-    validation_dataset = ConcatDataset([validation_inlier_dataset, outlier_dataset])
+    cifar_train = CIFAR10(root='../', train=True, download=True)
+    cifar_test = CIFAR10(root='../', train=False, download=True)
+    train_dataset = OneClassDataset(cifar_train, one_class_labels=inlier)
+    test_dataset = ConcatDataset([OneClassDataset(cifar_train, zero_class_labels=outlier), OneClassDataset(cifar_test, one_class_labels=inlier, zero_class_labels=outlier)])
     norm_transform = Compose([Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
 
     cosine_sim = CosineSimilarity(dim=-1)
@@ -42,7 +39,7 @@ def analyse(config):
 
         for encoder_n in range(config['encoders_n']):
             train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=config['num_workers'])
-            validation_dataloader = DataLoader(validation_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=config['num_workers'])
+            test_dataloader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=config['num_workers'])
             model = Encoder(config)
             model.load_state_dict(result.latest_models[encoder_n])
             model.eval()
@@ -65,7 +62,7 @@ def analyse(config):
                 svm = OneClassSVM(kernel='linear').fit(encodings.cpu().numpy())
 
                 val_x = []
-                for x, l in validation_dataloader:
+                for x, l in test_dataloader:
                     x = x.cuda()
                     x = model(norm_transform(result.aug_transforms[encoder_n](x)))
                     val_x.append(x)

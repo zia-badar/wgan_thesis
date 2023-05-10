@@ -34,32 +34,29 @@ def train_encoder(config):
     aug_transforms = []
 
     for _ in range(config['encoders_n']):
-        aug_transforms.append(transforms.Compose(list(filter(lambda item: item is not None, [
-            # transforms.RandomResizedCrop(32),
-            # transforms.RandomHorizontalFlip(p=0.5),
-            # transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-            # transforms.RandomGrayscale(p=0.2)
-
-            RandomResizedCrop(32),
-            RandomHorizontalFlip(p=0.5),
-            ColorJitter(0.4, 0.4, 0.4, 0.1) if torch.rand(1) < 0.8 else None,
-            transforms.Grayscale(num_output_channels=3) if torch.rand(1) < 0.2 else None,
-        ]))))
+        # aug_transforms.append(transforms.Compose(list(filter(lambda item: item is not None, [
+        #     # transforms.RandomResizedCrop(32),
+        #     # transforms.RandomHorizontalFlip(p=0.5),
+        #     # transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+        #     # transforms.RandomGrayscale(p=0.2)
+        #
+        #     RandomResizedCrop(32),
+        #     RandomHorizontalFlip(p=0.5),
+        #     ColorJitter(0.4, 0.4, 0.4, 0.1) if torch.rand(1) < 0.8 else None,
+        #     transforms.Grayscale(num_output_channels=3) if torch.rand(1) < 0.2 else None,
+        # ]))))
+        aug_transforms.append(transforms.Compose([]))
 
     inlier = [config['class']]
     outlier = list(range(10))
     outlier.remove(config['class'])
-    dataset = CIFAR10(root='../', train=True, download=True)
+    cifar_train = CIFAR10(root='../', train=True, download=True)
     # for setting determinister parameters of transform
+    totensor = ToTensor()
     for i in range(config['encoders_n']):
-        _ = aug_transforms[i](dataset[0][0])
+        _ = aug_transforms[i](totensor(cifar_train[0][0]))
 
-    inlier_dataset = OneClassDataset(dataset, one_class_labels=inlier)
-    outlier_dataset = OneClassDataset(dataset, zero_class_labels=outlier)
-    train_inlier_dataset = Subset(inlier_dataset, range(0, (int)(.7 * len(inlier_dataset))))
-    train_dataset = train_inlier_dataset
-    validation_inlier_dataset = Subset(inlier_dataset, range((int)(.7 * len(inlier_dataset)), len(inlier_dataset)))
-    validation_dataset = ConcatDataset([validation_inlier_dataset, outlier_dataset])
+    train_dataset = OneClassDataset(cifar_train, one_class_labels=inlier)
 
     fs = []
     es = []
@@ -97,8 +94,8 @@ def train_encoder(config):
         optim_fs.append(RMSprop(fs[i].parameters(), lr=config['lr'], weight_decay=config['weight_decay']))
         optim_es.append(RMSprop(es[i].parameters(), lr=config['lr'], weight_decay=config['weight_decay']))
 
-    # normal_dist = MultivariateNormal(loc=torch.zeros(config['encoding_dim']), covariance_matrix=torch.eye(config['encoding_dim']))
-    normal_dist = torch.distributions.Uniform(-1, 1)
+    normal_dist = MultivariateNormal(loc=torch.zeros(config['encoding_dim']), covariance_matrix=torch.eye(config['encoding_dim']))
+    # normal_dist = torch.distributions.Uniform(-1, 1)
     result = training_result(config)
     result_file_name = f'{config["result_folder"]}result_{(int)(mktime(localtime()))}'
     result.set_aug_transform(aug_transforms)
@@ -117,7 +114,8 @@ def train_encoder(config):
 
             x, _ = batch
             x = x.cuda()
-            z = normal_dist.sample((x.shape[0], config['encoding_dim'])).cuda()
+            z = normal_dist.sample((x.shape[0], )).cuda()
+            # z = normal_dist.sample((x.shape[0], config['encoding_dim'])).cuda()
 
             for i in range(config['encoders_n']):
                 loss = -torch.mean(fs[i](z) - fs[i](es[i](norm_transform(aug_transforms[i](x)))))
@@ -141,13 +139,14 @@ def train_encoder(config):
         for i  in range(config['encoders_n']):
             e_xs.append(es[i](norm_transform(aug_transforms[i](x))))
 
-        center = torch.mean(torch.nn.functional.normalize(torch.stack(e_xs), dim=-1), dim=0)
-        # center = torch.mean(torch.stack(e_xs), dim=0)
-        center = center.detach()
+        # center = torch.mean(torch.nn.functional.normalize(torch.stack(e_xs), dim=-1), dim=0)
+        # # center = torch.mean(torch.stack(e_xs), dim=0)
+        # center = center.detach()
 
         for i in range(config['encoders_n']):
             f_x = fs[i](e_xs[i])
-            loss = -torch.mean(f_x + cosine_sim(center, e_xs[i]))
+            # loss = -torch.mean(f_x + cosine_sim(center, e_xs[i]))
+            loss = -torch.mean(f_x)
             # loss = -torch.mean(f_x - torch.norm(center - e_xs[i], dim=1))
 
             optim_es[i].zero_grad()
@@ -156,11 +155,11 @@ def train_encoder(config):
 
         progress_bar.set_description(f'loss: {loss.item()}')
 
-        if encoder_iter % 1000 == 0:
+        if encoder_iter % config['encoder_iters'] == 0:
             means = []
             covs = []
             for i in range(config['encoders_n']):
-                mean, cov = evaluate_encoder(es[i], train_dataset, validation_dataset, config, norm_transform, aug_transforms[i])
+                mean, cov = evaluate_encoder(es[i], train_dataset, config, norm_transform, aug_transforms[i])
                 means.append(mean)
                 covs.append(cov)
 
@@ -172,7 +171,7 @@ def train_encoder(config):
     with open(result_file_name, 'wb') as file:
         dump(result, file)
 
-def evaluate_encoder(encoder, train_dataset, validation_dataset, config, norm_transform, aug_transform):
+def evaluate_encoder(encoder, train_dataset, config, norm_transform, aug_transform):
     encoder.eval()
 
     with torch.no_grad():
@@ -186,8 +185,9 @@ def evaluate_encoder(encoder, train_dataset, validation_dataset, config, norm_tr
             encodings = torch.cat(encodings)
             mean = torch.mean(encodings, dim=0)
             cov = torch.cov(encodings.t(), correction=0)
-            # eig_val, eig_vec = eig(cov)
-            # condition_no = torch.max(eig_val.real) / torch.min(eig_val.real)
+            eig_val, eig_vec = eig(cov)
+            condition_no = torch.max(eig_val.real) / torch.min(eig_val.real)
+            print(f'cov: {cov}, condition_no: {condition_no}')
 
         # validation_dataloader = DataLoader(validation_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=config['num_workers'])
         # distribution = MultivariateNormal(mean, cov)
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     sum2 = 0
     for _class in range(10):
         # folder = list(filter(lambda f: f.endswith(str(_class)), listdir('/home/zia/Desktop/MasterThesis/anamoly_det_test_1/results/set_3/')))[0]
-        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 1000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 20, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 25 }
+        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 1000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 20, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 10 }
         config['lambda'] = 0
 
         config['class'] = _class
