@@ -1,0 +1,20 @@
+gaussian dist, without aug views, 10 encoders, discriminator scale = 1 9a4b3354
+avg roc: 0.5945771185185186
+avg roc2: 0.6240299944444445
+
+gaussian dist, with aug view per encoder, 10 encoder, discriminator scale = 1 66e1f797
+avg roc: 0.5913541296296297
+avg roc2: 0.6171266629629629
+
+gaussian dist, with aug view per encoder, with cossim alignment(1e-4), 10 encoder, discriminator scale = 4 696ed487
+avg roc: 0.5946086
+avg roc2: 0.6417234851851852
+
+uniform dist, with aug view per encoder, with cossim alignment(1e-4), 10 encoder, discriminator scale = 4
+avg roc: 0.59
+avg roc2: 0.56 or .50 or 40 something
+
+uniform dist, with aug view per encoder, with cossim alignment, 10 encoder, discriminator scale = 4
+avg roc: 0.6188074018518519
+avg roc2: 0.6472831861111111
+
