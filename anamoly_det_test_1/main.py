@@ -138,21 +138,24 @@ def train_encoder(config):
         for i  in range(config['encoders_n']):
             e_xs.append(es[i](norm_transform(aug_transforms[i](x))))
 
-        # center = torch.mean(torch.nn.functional.normalize(torch.stack(e_xs), dim=-1), dim=0)
-        # # center = torch.mean(torch.stack(e_xs), dim=0)
-        # center = center.detach()
+        with torch.no_grad():
+            center = torch.mean(torch.nn.functional.normalize(torch.stack(e_xs), dim=-1), dim=0)
+            # center = torch.mean(torch.stack(e_xs), dim=0)
+            center = center.detach()
 
         for i in range(config['encoders_n']):
             f_x = fs[i](e_xs[i])
-            # loss = -torch.mean(f_x + cosine_sim(center, e_xs[i]))
-            loss = -torch.mean(f_x)
+            l1 = torch.mean(f_x)
+            l2 = 1e-4*torch.mean(cosine_sim(center, e_xs[i]))
+            loss = -(l1 + l2)
+            # loss = -torch.mean(f_x)
             # loss = -torch.mean(f_x - torch.norm(center - e_xs[i], dim=1))
 
             optim_es[i].zero_grad()
             loss.backward()
             optim_es[i].step()
 
-        progress_bar.set_description(f'loss: {loss.item()}')
+        progress_bar.set_description(f'l1: {l1.item()}, l2: {l2.item()}, loss: {loss.item()}')
 
         if encoder_iter % config['encoder_iters'] == 0:
             means = []
