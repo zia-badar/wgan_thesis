@@ -34,17 +34,18 @@ def train_encoder(config):
     aug_transforms = []
 
     for _ in range(config['encoders_n']):
-        aug_transforms.append(transforms.Compose(list(filter(lambda item: item is not None, [
-            # transforms.RandomResizedCrop(32),
-            # transforms.RandomHorizontalFlip(p=0.5),
-            # transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-            # transforms.RandomGrayscale(p=0.2)
-
-            RandomResizedCrop(32),
-            RandomHorizontalFlip(p=0.5),
-            ColorJitter(0.4, 0.4, 0.4, 0.1) if torch.rand(1) < 0.8 else None,
-            transforms.Grayscale(num_output_channels=3) if torch.rand(1) < 0.2 else None,
-        ]))))
+        # aug_transforms.append(transforms.Compose(list(filter(lambda item: item is not None, [
+        #     # transforms.RandomResizedCrop(32),
+        #     # transforms.RandomHorizontalFlip(p=0.5),
+        #     # transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+        #     # transforms.RandomGrayscale(p=0.2)
+        #
+        #     RandomResizedCrop(32),
+        #     RandomHorizontalFlip(p=0.5),
+        #     ColorJitter(0.4, 0.4, 0.4, 0.1) if torch.rand(1) < 0.8 else None,
+        #     transforms.Grayscale(num_output_channels=3) if torch.rand(1) < 0.2 else None,
+        # ]))))
+        aug_transforms.append(transforms.Compose([]))
 
     inlier = [config['class']]
     outlier = list(range(10))
@@ -93,8 +94,8 @@ def train_encoder(config):
         optim_fs.append(RMSprop(fs[i].parameters(), lr=config['lr'], weight_decay=config['weight_decay']))
         optim_es.append(RMSprop(es[i].parameters(), lr=config['lr'], weight_decay=config['weight_decay']))
 
-    # normal_dist = MultivariateNormal(loc=torch.zeros(config['encoding_dim']), covariance_matrix=torch.eye(config['encoding_dim']))
-    normal_dist = torch.distributions.Uniform(-1, 1)
+    normal_dist = MultivariateNormal(loc=torch.zeros(config['encoding_dim']), covariance_matrix=torch.eye(config['encoding_dim']))
+    # normal_dist = torch.distributions.Uniform(-1, 1)
     result = training_result(config)
     result_file_name = f'{config["result_folder"]}result_{(int)(mktime(localtime()))}'
     result.set_aug_transform(aug_transforms)
@@ -113,8 +114,8 @@ def train_encoder(config):
 
             x, _ = batch
             x = x.cuda()
-            # z = normal_dist.sample((x.shape[0], )).cuda()
-            z = normal_dist.sample((x.shape[0], config['encoding_dim'])).cuda()
+            z = normal_dist.sample((x.shape[0], )).cuda()
+            # z = normal_dist.sample((x.shape[0], config['encoding_dim'])).cuda()
 
             for i in range(config['encoders_n']):
                 loss = -torch.mean(fs[i](z) - fs[i](es[i](norm_transform(aug_transforms[i](x)))))
@@ -146,7 +147,7 @@ def train_encoder(config):
         for i in range(config['encoders_n']):
             f_x = fs[i](e_xs[i])
             l1 = torch.mean(f_x)
-            l2 = torch.mean(cosine_sim(center, e_xs[i]))
+            l2 = 1e-4*torch.mean(cosine_sim(center, e_xs[i]))
             loss = -(l1 + l2)
             # loss = -torch.mean(f_x)
             # loss = -torch.mean(f_x - torch.norm(center - e_xs[i], dim=1))
