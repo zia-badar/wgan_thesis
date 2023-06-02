@@ -31,6 +31,8 @@ def analyse(config):
     cosine_sim = CosineSimilarity(dim=-1)
     prob_sum = None
     prob_count = 0
+    roc_list = []
+    roc_list2 = []
     for i, result_file in enumerate(listdir(config['result_folder'])):
 
         with open(config['result_folder'] + result_file, 'rb') as file:
@@ -103,8 +105,12 @@ def analyse(config):
             prob_count += 1
 
             # if (i+1) % 10 == 0:
-            print(f'{result_file}, p(x|u,c), roc_score: {roc_auc_score(labels.cpu().numpy(), (prob_sum / prob_count).cpu().numpy())}, roc: {roc_auc_score(labels.cpu().numpy(), prob.cpu().numpy())}')
-            print(f'{result_file}, cos_sim, roc_score: {roc_auc_score(labels.cpu().numpy(), (cos_sum / prob_count).cpu().numpy())}, roc: {roc_auc_score(labels.cpu().numpy(), cos_sim.cpu().numpy())}')
+            p = roc_auc_score(labels.cpu().numpy(), (prob_sum / prob_count).cpu().numpy())
+            print(f'{result_file}, p(x|u,c), roc_score: {p}, roc: {roc_auc_score(labels.cpu().numpy(), prob.cpu().numpy())}')
+            p2 = roc_auc_score(labels.cpu().numpy(), (cos_sum / prob_count).cpu().numpy())
+            print(f'{result_file}, cos_sim, roc_score: {p2}, roc: {roc_auc_score(labels.cpu().numpy(), cos_sim.cpu().numpy())}')
+            roc_list.append(p)
+            roc_list2.append(p2)
 
     print(f'not_nan: {prob_count}')
     prob = prob_sum / prob_count
@@ -120,4 +126,4 @@ def analyse(config):
     roc2 = roc_auc_score(targets, cos_sim.cpu().numpy())
     print(f'class: {config["class"]}, p(x|u,c) roc_score: {roc}, cos_sim roc_score: {roc2}not_nan: {prob_count}')
 
-    return roc, roc2
+    return roc, roc2, roc_list, roc_list2

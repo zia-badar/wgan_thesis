@@ -25,15 +25,15 @@ class Discriminator(nn.Module):
         scale = 2
         self.d = nn.Sequential(
 
-            nn.Linear(in_features=config['encoding_dim'], out_features=config['encoding_dim']),
+            nn.Linear(in_features=config['encoding_dim'], out_features=scale*config['encoding_dim']),
             ReLU(inplace=True),
-            nn.Linear(in_features=config['encoding_dim'], out_features=config['encoding_dim']),
-            BatchNorm1d(num_features=config['encoding_dim']),
+            nn.Linear(in_features=scale*config['encoding_dim'], out_features=scale*config['encoding_dim']),
+            BatchNorm1d(num_features=scale*config['encoding_dim']),
             ReLU(inplace=True),
-            nn.Linear(in_features=config['encoding_dim'], out_features=config['encoding_dim']),
-            BatchNorm1d(num_features=config['encoding_dim']),
+            nn.Linear(in_features=scale*config['encoding_dim'], out_features=scale*config['encoding_dim']),
+            BatchNorm1d(num_features=scale*config['encoding_dim']),
             ReLU(inplace=True),
-            nn.Linear(in_features=config['encoding_dim'], out_features=1)
+            nn.Linear(in_features=scale*config['encoding_dim'], out_features=1)
         )
 
     def forward(self, x):

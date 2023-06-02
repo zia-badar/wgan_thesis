@@ -3,3 +3,4 @@ result_*
 tmp_*
 _results
 __pycache__/
+output_file

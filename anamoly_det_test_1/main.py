@@ -103,6 +103,14 @@ def train_encoder(config):
     cosine_sim = CosineSimilarity(dim=-1)
 
     progress_bar = tqdm(range(1, config['encoder_iters']+1))
+    # means = []
+    # covs = []
+    # for i in range(config['encoders_n']):
+    #     mean, cov = evaluate_encoder(es[i], train_dataset, config, norm_transform, aug_transforms[i])
+    #     means.append(mean)
+    #     covs.append(cov)
+    #
+    # result.update(es, means, covs, -1)
 
     for encoder_iter in progress_bar:
 
@@ -222,23 +230,30 @@ if __name__ == '__main__':
 
     sum = 0
     sum2 = 0
+    all_roc_list = []
+    all_roc_list2 = []
     for _class in range(10):
         # folder = list(filter(lambda f: f.endswith(str(_class)), listdir('/home/zia/Desktop/MasterThesis/anamoly_det_test_1/results/set_3/')))[0]
-        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 1000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 20, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 10 }
+        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 2000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 20, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 1 }
         config['lambda'] = 0
 
         config['class'] = _class
         mkdir(config['result_folder'])
 
-        for _ in range(1):
+        for _ in range(10):
             ret = False
             while ret == False:
                 ret = train_encoder(config)
-        roc, roc2 = analyse(config)
+        roc, roc2, roc_list, roc_list2 = analyse(config)
         sum += roc
         sum2 += roc2
         print(f'class: {_class}, roc: {roc}')
         # shutil.rmtree(config['result_folder'])
+        print(roc_list)
+        all_roc_list.append(roc_list)
+        all_roc_list2.append(roc_list2)
 
+    print(all_roc_list)
+    print(all_roc_list2)
     print(f'avg roc: {sum/10.}')
     print(f'avg roc2: {sum2/10.}')
