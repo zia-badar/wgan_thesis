@@ -50,13 +50,13 @@ def train_encoder(config):
     inlier = [config['class']]
     outlier = list(range(10))
     outlier.remove(config['class'])
-    cifar_train = CIFAR10(root='../', train=True, download=True)
+    mnist_train = MNIST(root='../', train=True, download=True)
     # for setting determinister parameters of transform
     totensor = ToTensor()
     for i in range(config['encoders_n']):
-        _ = aug_transforms[i](totensor(cifar_train[0][0]))
+        _ = aug_transforms[i](totensor(mnist_train[0][0]))
 
-    train_dataset = OneClassDataset(cifar_train, one_class_labels=inlier)
+    train_dataset = OneClassDataset(mnist_train, one_class_labels=inlier)
 
     fs = []
     es = []
@@ -99,7 +99,7 @@ def train_encoder(config):
     result = training_result(config)
     result_file_name = f'{config["result_folder"]}result_{(int)(mktime(localtime()))}'
     result.set_aug_transform(aug_transforms)
-    norm_transform = Compose([Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+    norm_transform = Compose([Normalize(mean=(0.5), std=(0.5))])
     cosine_sim = CosineSimilarity(dim=-1)
 
     progress_bar = tqdm(range(1, config['encoder_iters']+1))
@@ -234,13 +234,13 @@ if __name__ == '__main__':
     all_roc_list2 = []
     for _class in range(10):
         # folder = list(filter(lambda f: f.endswith(str(_class)), listdir('/home/zia/Desktop/MasterThesis/anamoly_det_test_1/results/set_3/')))[0]
-        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 32, 'encoder_iters': 2000, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 20, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 1 }
+        config = {'batch_size': 64, 'epochs': 200, 'encoding_dim': 16, 'encoder_iters': 500, 'discriminator_n': 5, 'lr': 5e-5, 'weight_decay': 1e-6, 'clip': 1e-2, 'num_workers': 0, 'result_folder': f'results/set_{(int)(mktime(localtime()))}_{_class}/', 'encoders_n': 1 }
         config['lambda'] = 0
 
         config['class'] = _class
         mkdir(config['result_folder'])
 
-        for _ in range(10):
+        for _ in range(50):
             ret = False
             while ret == False:
                 ret = train_encoder(config)

@@ -60,7 +60,7 @@ class Encoder(nn.Module):
             # nn.Linear(in_features=(int)(config['data_dim']/8), out_features=config['encoding_dim']),
 
             # Conv2d(in_channels=1, out_channels=256, kernel_size=4, stride=2, padding=1, bias=False),
-            Conv2d(in_channels=3, out_channels=256, kernel_size=4, stride=2, padding=1, bias=False),
+            Conv2d(in_channels=1, out_channels=256, kernel_size=4, stride=2, padding=1, bias=False),
             BatchNorm2d(num_features=256),
             LeakyReLU(0.2, inplace=True),
             Conv2d(in_channels=256, out_channels=512, kernel_size=4, stride=2, padding=1, bias=False),

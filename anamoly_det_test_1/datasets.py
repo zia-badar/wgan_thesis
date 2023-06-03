@@ -36,7 +36,7 @@ class OneClassDataset(Dataset):
         #     transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
         #     transforms.RandomGrayscale(p=0.2)])
 
-        self.toTensor = ToTensor()
+        self.toTensor = Compose([ToTensor(), Resize((32, 32))])
         # self.norm_transform = Compose([Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
 
     def __getitem__(self, item):

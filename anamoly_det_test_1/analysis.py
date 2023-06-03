@@ -22,11 +22,11 @@ def analyse(config):
     inlier = [config['class']]
     outlier = list(range(10))
     outlier.remove(config['class'])
-    cifar_train = CIFAR10(root='../', train=True, download=True)
-    cifar_test = CIFAR10(root='../', train=False, download=True)
-    train_dataset = OneClassDataset(cifar_train, one_class_labels=inlier)
-    test_dataset = ConcatDataset([OneClassDataset(cifar_train, zero_class_labels=outlier), OneClassDataset(cifar_test, one_class_labels=inlier, zero_class_labels=outlier)])
-    norm_transform = Compose([Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+    mnist_train = MNIST(root='../', train=True, download=True)
+    mnist_test = MNIST(root='../', train=False, download=True)
+    train_dataset = OneClassDataset(mnist_train, one_class_labels=inlier)
+    test_dataset = ConcatDataset([OneClassDataset(mnist_train, zero_class_labels=outlier), OneClassDataset(mnist_test, one_class_labels=inlier, zero_class_labels=outlier)])
+    norm_transform = Compose([Normalize(mean=(0.5), std=(0.5))])
 
     cosine_sim = CosineSimilarity(dim=-1)
     prob_sum = None
